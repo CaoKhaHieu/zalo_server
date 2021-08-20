@@ -7,6 +7,7 @@ const UserSchema = new Schema({
     phone: String,
     password: String,
     otp: String,
+    refeshToken: String,
 },{
     timestamps: true
 })
