@@ -1,13 +1,20 @@
-import { UsersModel } from "../models/UserModel.js"
-import expressAsyncHandler from 'express-async-handler'
-import jwt from "jsonwebtoken";
+import { UsersModel } from "../models/UserModel.js";
 import { generateToken } from "../utils/index.js";
-import nodemailer from "nodemailer";
 import { mailer } from "../utils/mailer.js";
+import cloudinary from "cloudinary";
 
 export const getUser = async (req, res) => {
   const users = await UsersModel.find();
   res.send(users);
+};
+
+export const getUserById = async (req, res) => {
+  const user = await UsersModel.findById(req.params.id);
+  if (user) {
+    res.send(user);
+  } else {
+    res.status(403).send({ message: "user not found" });
+  }
 };
 
 export const updateRefeshToken = (user, refeshToken) => {
@@ -41,6 +48,8 @@ export const Register = async (req, res) => {
     res.status(400).send({ message: "Số điện thoại này đã đăng kí tài khoản" });
   } else {
     const user = new UsersModel(req.body);
+    user.avatar =
+      "https://res.cloudinary.com/caokhahieu/image/upload/v1630225166/zalo/anonymous_bujoil.jpg";
     await user.save();
 
     const refeshToken = generateToken(user).refeshToken;
@@ -55,7 +64,6 @@ export const Register = async (req, res) => {
     });
   }
 };
-
 
 export const getNewToken = async (req, res) => {
   const refeshToken = req.body;
@@ -123,6 +131,91 @@ export const checkCodeOtp = async (req, res) => {
     }
   } else {
     res.status(403).send({ message: "Email này chưa đăng kí tài khoản" });
+  }
+};
+
+export const changeAvatar = async (req, res) => {
+  const userExist = await UsersModel.findById(req.body._id);
+  const result = await cloudinary.uploader.upload(req.file.path, {
+    folder: "zalo",
+  });
+
+  if (userExist) {
+    userExist.avatar = result.secure_url;
+    userExist.cloulinary_id = result?.public_id || userExist.cloudinary_id;
+    await userExist.save();
+    res.send(userExist);
+  } else {
+    res.status(403).send({ mesage: "user not found" });
+  }
+  cloudinary.uploader.destroy(userExist.cloudinary_id);
+};
+
+export const searchUser = async (req, res) => {
+  const user = await UsersModel.findOne({ phone: req.body.phone });
+  if (user) {
+    res.send(user);
+  } else {
+    res.status(403).send({ message: "Số điện thoại hoặc email không đúng" });
+  }
+};
+
+export const addFriend = async (userFrom, userTo) => {
+  const userToAccount = await UsersModel.findById(userTo._id);
+  const userFromAccount = await UsersModel.findById(userFrom._id);
+
+  if (userToAccount && userFromAccount) {
+    userToAccount.peopleRequest.push(userFrom);
+    userFromAccount.myRequest.push(userTo);
+
+    await userToAccount.save();
+    await userFromAccount.save();
+  }
+};
+
+export const deleteRequestFriend = async (userFrom, userTo) => {
+  const userToAccount = await UsersModel.findById(userTo._id);
+  const userFromAccount = await UsersModel.findById(userFrom._id);
+
+  if (userToAccount && userFromAccount) {
+    userToAccount.peopleRequest = userToAccount.peopleRequest.filter(
+      (x) => x._id !== userFrom._id
+    );
+    userFromAccount.myRequest = userFromAccount.myRequest.filter(
+      (x) => x._id !== userTo._id
+    );
+
+    await userToAccount.save();
+    await userFromAccount.save();
+  }
+};
+
+export const acceptFriend = async (req, res) => {
+  const user = await UsersModel.findOne({ _id: req.user._id });
+  const userSender = await UsersModel.findOne({ _id: req.body._id });
+
+  if (user) {
+    const friend = {
+      _id: user._id,
+      name: user.name,
+      avatar: user.avatar,
+    };
+
+    user.peopleRequest = user.peopleRequest.filter(
+      (x) => x._id !== req.body._id
+    );
+    user.friends.push(req.body);
+
+    userSender.myRequest = userSender.myRequest.filter(
+      (x) => x._id !== req.user._id
+    );
+    userSender.friends.push(friend);
+
+    await user.save();
+    await userSender.save();
+    res.send(user);
+  } else {
+    res.status(403).send({ message: "user not found" });
   }
 };
 
