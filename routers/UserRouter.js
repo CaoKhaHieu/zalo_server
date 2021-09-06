@@ -1,9 +1,10 @@
 import express from 'express'
 import {
-  acceptFriend,
   changeAvatar,
   checkCodeOtp,
   Demo,
+  getAllFriendByUser,
+  getAllPeopleRequestByUser,
   getNewToken,
   getUser,
   getUserById,
@@ -30,7 +31,9 @@ UserRouter.post("/getnewtoken", getNewToken);
 
 UserRouter.post("/avatar", isAuth, upload.single("image"), changeAvatar);
 UserRouter.post("/search", searchUser);
-UserRouter.post("/acceptfriend", isAuth, acceptFriend);
+
+UserRouter.get("/getAllFriendByUser/:id", getAllFriendByUser);
+UserRouter.get("/getAllPeopleRequestByUser/:id", getAllPeopleRequestByUser);
 
 UserRouter.get("/demo", Demo);
 

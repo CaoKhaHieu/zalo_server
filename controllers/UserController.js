@@ -9,7 +9,7 @@ export const getUser = async (req, res) => {
 };
 
 export const getUserById = async (req, res) => {
-  const user = await UsersModel.findById(req.params.id);
+  const user = await UsersModel.findOne({ _id: req.params.id });
   if (user) {
     res.send(user);
   } else {
@@ -141,14 +141,23 @@ export const changeAvatar = async (req, res) => {
   });
 
   if (userExist) {
+    if (
+      userExist.avatar ===
+      "https://res.cloudinary.com/caokhahieu/image/upload/v1630225166/zalo/anonymous_bujoil.jpg"
+    ) {
+      console.log("image default");
+    } else {
+      cloudinary.uploader.destroy(userExist.cloudinary_id);
+    }
+
     userExist.avatar = result.secure_url;
-    userExist.cloulinary_id = result?.public_id || userExist.cloudinary_id;
+    userExist.cloulinary_id = result.public_id;
+
     await userExist.save();
     res.send(userExist);
   } else {
     res.status(403).send({ mesage: "user not found" });
   }
-  cloudinary.uploader.destroy(userExist.cloudinary_id);
 };
 
 export const searchUser = async (req, res) => {
@@ -161,12 +170,13 @@ export const searchUser = async (req, res) => {
 };
 
 export const addFriend = async (userFrom, userTo) => {
-  const userToAccount = await UsersModel.findById(userTo._id);
-  const userFromAccount = await UsersModel.findById(userFrom._id);
+  const userToAccount = await UsersModel.findById(userTo);
+  const userFromAccount = await UsersModel.findById(userFrom);
+  console.log(userFrom, userTo);
 
   if (userToAccount && userFromAccount) {
-    userToAccount.peopleRequest.push(userFrom);
-    userFromAccount.myRequest.push(userTo);
+    userToAccount.peopleRequest.push({ idUser: userFrom });
+    userFromAccount.myRequest.push({ idUser: userTo });
 
     await userToAccount.save();
     await userFromAccount.save();
@@ -174,49 +184,92 @@ export const addFriend = async (userFrom, userTo) => {
 };
 
 export const deleteRequestFriend = async (userFrom, userTo) => {
-  const userToAccount = await UsersModel.findById(userTo._id);
-  const userFromAccount = await UsersModel.findById(userFrom._id);
+  const userToAccount = await UsersModel.findOne({ _id: userTo });
+  const userFromAccount = await UsersModel.findOne({ _id: userFrom });
 
   if (userToAccount && userFromAccount) {
-    userToAccount.peopleRequest = userToAccount.peopleRequest.filter(
-      (x) => x._id !== userFrom._id
-    );
     userFromAccount.myRequest = userFromAccount.myRequest.filter(
-      (x) => x._id !== userTo._id
+      (x) => x.idUser != userTo
+    );
+    userToAccount.peopleRequest = userToAccount.peopleRequest.filter(
+      (x) => x.idUser != userFrom
     );
 
-    await userToAccount.save();
     await userFromAccount.save();
+    await userToAccount.save();
   }
 };
 
-export const acceptFriend = async (req, res) => {
-  const user = await UsersModel.findOne({ _id: req.user._id });
-  const userSender = await UsersModel.findOne({ _id: req.body._id });
+export const acceptFriend = async (userFrom, userTo) => {
+  const userFromAccount = await UsersModel.findOne({ _id: userFrom });
+  const userToAccount = await UsersModel.findOne({ _id: userTo });
 
-  if (user) {
-    const friend = {
-      _id: user._id,
-      name: user.name,
-      avatar: user.avatar,
-    };
-
-    user.peopleRequest = user.peopleRequest.filter(
-      (x) => x._id !== req.body._id
+  if (userFromAccount && userToAccount) {
+    userFromAccount.peopleRequest = userFromAccount.peopleRequest.filter(
+      (x) => x.idUser != userTo
     );
-    user.friends.push(req.body);
+    userFromAccount.friends.push({ idUser: userTo });
 
-    userSender.myRequest = userSender.myRequest.filter(
-      (x) => x._id !== req.user._id
+    userToAccount.myRequest = userToAccount.myRequest.filter(
+      (x) => x.idUser != userFrom
     );
-    userSender.friends.push(friend);
+    userToAccount.friends.push({ idUser: userFrom });
 
-    await user.save();
-    await userSender.save();
-    res.send(user);
-  } else {
-    res.status(403).send({ message: "user not found" });
+    await userFromAccount.save();
+    await userToAccount.save();
   }
+};
+
+export const DontAcceptFriend = async (userFrom, userTo) => {
+  const userFromAccount = await UsersModel.findOne({ _id: userFrom });
+  const userToAccount = await UsersModel.findOne({ _id: userTo });
+
+  if (userFromAccount && userToAccount) {
+    userFromAccount.peopleRequest = userFromAccount.peopleRequest.filter(
+      (x) => x.idUser != userTo
+    );
+
+    userToAccount.myRequest = userToAccount.myRequest.filter(
+      (x) => x.idUser != userFrom
+    );
+
+    await userFromAccount.save();
+    await userToAccount.save();
+  }
+};
+
+export const unFriend = async (userFrom, userTo) => {
+  const userFromAccount = await UsersModel.findOne({ _id: userFrom });
+  const userToAccount = await UsersModel.findOne({ _id: userTo });
+
+  if (userFromAccount && userToAccount) {
+    userFromAccount.friends = userFromAccount.friends.filter(
+      (x) => x.idUser != userTo
+    );
+
+    userToAccount.friends = userToAccount.friends.filter(
+      (x) => x.idUser != userFrom
+    );
+
+    await userFromAccount.save();
+    await userToAccount.save();
+  }
+};
+
+export const getAllPeopleRequestByUser = async (req, res) => {
+  const list = await UsersModel.findById(req.params.id).populate({
+    path: "peopleRequest.idUser",
+    select: { name: 1, avatar: 1 },
+  });
+  res.send(list.peopleRequest);
+};
+
+export const getAllFriendByUser = async (req, res) => {
+  const list = await UsersModel.findById(req.params.id).populate({
+    path: "friends.idUser",
+    select: { name: 1, avatar: 1 },
+  });
+  res.send(list.friends);
 };
 
 export const Demo = (req, res) => {

@@ -1,7 +1,10 @@
 import { Server } from "socket.io";
 import {
+  acceptFriend,
   addFriend,
   deleteRequestFriend,
+  DontAcceptFriend,
+  unFriend,
 } from "../controllers/UserController.js";
 
 export const ConnectSocket = (server) => {
@@ -18,23 +21,47 @@ export const ConnectSocket = (server) => {
     console.log(`${socket.id} connected`);
 
     socket.on("join_room", (User) => {
+      console.log("join-room");
       socket.join(User._id);
     });
 
     socket.on("add_friend", async (data) => {
       const { userFrom, userTo } = data;
-
       await addFriend(userFrom, userTo);
 
       io.emit("add_friend_success");
-      io.to(userTo._id).emit("new_request_friend");
+      io.to(userTo).emit("new_request_friend", userTo);
     });
 
     socket.on("delete_request_friend", async (data) => {
       const { userFrom, userTo } = data;
       await deleteRequestFriend(userFrom, userTo);
       io.emit("delete_request_friend_success");
-      io.to(userTo._id).emit("person_delete_request_friend");
+      io.to(userTo).emit("person_delete_request_friend", userTo);
+    });
+
+    socket.on("accept_request_friend", async (data) => {
+      const { userFrom, userTo } = data;
+      await acceptFriend(userFrom, userTo);
+
+      io.emit("accept_request_friend_success", userFrom);
+      io.to(userTo).emit("accept_request_friend", userTo);
+    });
+
+    socket.on("dont_accept_request_friend", async (data) => {
+      const { userFrom, userTo } = data;
+      await DontAcceptFriend(userFrom, userTo);
+
+      io.emit("dont_accept_request_friend_success", userFrom);
+      io.to(userTo).emit("dont_accept_request_friend", userTo);
+    });
+
+    socket.on("un_friend", async (data) => {
+      const { userFrom, userTo } = data;
+      await unFriend(userFrom, userTo);
+
+      io.emit("un_friend_success", userFrom);
+      io.to(userTo).emit("un_friend", userTo);
     });
   });
 };
