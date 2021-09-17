@@ -4,6 +4,7 @@ const Schema = mongoose.Schema
 
 const FriendSchema = new Schema({
   idUser: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  idConversation: { type: mongoose.Schema.Types.ObjectId, ref: "Conversation" },
 });
 
 const UserSchema = new Schema(

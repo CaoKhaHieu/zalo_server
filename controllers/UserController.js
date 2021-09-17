@@ -2,6 +2,8 @@ import { UsersModel } from "../models/UserModel.js";
 import { generateToken } from "../utils/index.js";
 import { mailer } from "../utils/mailer.js";
 import cloudinary from "cloudinary";
+import { ConversationModel } from "../models/ConversationModel.js";
+import { MessageModel } from "../models/MessageModel.js";
 
 export const getUser = async (req, res) => {
   const users = await UsersModel.find();
@@ -205,15 +207,34 @@ export const acceptFriend = async (userFrom, userTo) => {
   const userToAccount = await UsersModel.findOne({ _id: userTo });
 
   if (userFromAccount && userToAccount) {
+    // ------------ CREATE NEW CONVERSATION
+    const newConversation = new ConversationModel({
+      type: "single",
+      members: [],
+    });
+    console.log(newConversation);
+    newConversation.members.push({ idUser: userFrom });
+    newConversation.members.push({ idUser: userTo });
+    await newConversation.save();
+    console.log("new-conversation: ", newConversation._id);
+
+    // ------------ CODE LOGIC
     userFromAccount.peopleRequest = userFromAccount.peopleRequest.filter(
       (x) => x.idUser != userTo
     );
-    userFromAccount.friends.push({ idUser: userTo });
+    userFromAccount.friends.push({
+      idUser: userTo,
+      idConversation: newConversation._id,
+    });
 
     userToAccount.myRequest = userToAccount.myRequest.filter(
       (x) => x.idUser != userFrom
     );
-    userToAccount.friends.push({ idUser: userFrom });
+    userToAccount.friends.push({
+      idUser: userFrom,
+      idConversation: newConversation._id,
+    });
+    console.log("userToAccount: ", userToAccount);
 
     await userFromAccount.save();
     await userToAccount.save();
@@ -238,7 +259,10 @@ export const DontAcceptFriend = async (userFrom, userTo) => {
   }
 };
 
-export const unFriend = async (userFrom, userTo) => {
+export const unFriend = async (userFrom, userTo, idConversation) => {
+  await ConversationModel.findByIdAndDelete(idConversation);
+  await MessageModel.deleteMany({ idConversation: idConversation });
+
   const userFromAccount = await UsersModel.findOne({ _id: userFrom });
   const userToAccount = await UsersModel.findOne({ _id: userTo });
 
@@ -269,6 +293,7 @@ export const getAllFriendByUser = async (req, res) => {
     path: "friends.idUser",
     select: { name: 1, avatar: 1 },
   });
+
   res.send(list.friends);
 };
 
