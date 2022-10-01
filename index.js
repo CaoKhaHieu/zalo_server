@@ -12,7 +12,7 @@ dotenv.config();
 
 const app = express();
 const server = createServer(app);
-const PORT = 5000;
+const PORT = 4000;
 
 ConnectSocket(server);
 ConnectToDB();

@@ -45,7 +45,9 @@ export const Login = async (req, res) => {
 };
 
 export const Register = async (req, res) => {
+  console.log(req.body)
   const userExists = await UsersModel.findOne({ phone: req.body.phone });
+  console.log(userExists)
   if (userExists) {
     res.status(400).send({ message: "Số điện thoại này đã đăng kí tài khoản" });
   } else {
@@ -54,8 +56,8 @@ export const Register = async (req, res) => {
       "https://res.cloudinary.com/caokhahieu/image/upload/v1630225166/zalo/anonymous_bujoil.jpg";
     await user.save();
 
-    const refeshToken = generateToken(user).refeshToken;
-    updateRefeshToken(user, refeshToken);
+    // const refeshToken = generateToken(user).refeshToken;
+    // updateRefeshToken(user, refeshToken);
 
     res.status(200).send({
       _id: user._id,

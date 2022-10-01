@@ -3,7 +3,7 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
-const url = process.env.URL_DB
+const url = process.env.URL_DB;
 const options = {
     useNewUrlParser: true,
     useUnifiedTopology: true,
