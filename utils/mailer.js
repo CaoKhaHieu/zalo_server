@@ -1,7 +1,8 @@
 import nodemailer from 'nodemailer';
 
  const adminEmail = 'caokhahieu9@gmail.com'
- const adminPassword = 'Congtubot128'
+//  const adminPassword = 'Congtubot128'
+ const adminPassword = 'CaoKhaHieu128'
  const mailHost = 'smtp.gmail.com'
  const mailPort = 587
 
