@@ -17,7 +17,7 @@ import {
 export const ConnectSocket = (server) => {
   const io = new Server(server, {
     cors: {
-      origin: ["http://localhost:3000", "https://6501cc7e10f85c0986f66a74--shiny-klepon-f022e3.netlify.app/"],
+      origin: ["http://localhost:3000", "https://6501cc7e10f85c0986f66a74--shiny-klepon-f022e3.netlify.app"],
       methods: ["GET", "POST"],
       allowedHeaders: ["my-custom-header"],
       credentials: true,
